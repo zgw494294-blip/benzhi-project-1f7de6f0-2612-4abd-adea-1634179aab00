@@ -59,5 +59,8 @@ func (s *Service) CorrectDeviation(projectID, deviationID string, c CorrectionCo
 		result = d
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }

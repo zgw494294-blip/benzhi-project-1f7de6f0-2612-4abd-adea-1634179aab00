@@ -3,6 +3,7 @@ package application
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"time"
 
 	"kilncurve-release/internal/store"
@@ -55,3 +56,22 @@ func appErrorWithDetails(code, message, field string, status int, details any) e
 }
 
 func idemKey(command, key string) string { return command + ":" + key }
+
+// cloneEntity returns a deep copy of a state command's returned entity so it
+// is fully isolated from the published in-memory state. Without this, the
+// pointer captured inside Repository.Update aliases the freshly published
+// state (Update assigns the working clone to r.state on commit); a caller
+// mutating the returned value would then pollute subsequent reads and could
+// diverge from the committed disk snapshot. The round-trip mirrors State.Clone
+// so slice and pointer fields are reproduced consistently.
+func cloneEntity[T any](entity T) T {
+	b, err := json.Marshal(entity)
+	if err != nil {
+		return entity
+	}
+	var out T
+	if err = json.Unmarshal(b, &out); err != nil {
+		return entity
+	}
+	return out
+}

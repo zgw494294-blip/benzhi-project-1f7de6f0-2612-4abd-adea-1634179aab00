@@ -106,7 +106,10 @@ func (s *Service) RecordAndEvaluateRun(projectID string, c TrialRunCommand) (*do
 		result = r
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 func deviationsForProject(st *store.State, p *domain.TrialProject) []*domain.Deviation {

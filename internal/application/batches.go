@@ -98,5 +98,8 @@ func (s *Service) CreateCorrectionBatch(projectID string, c CorrectionBatchComma
 		result = batch
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }

@@ -87,7 +87,10 @@ func (s *Service) ReviewProject(projectID string, c ReviewCommand) (*domain.Proc
 		result = card
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 func latestFrozen(st *store.State, p *domain.TrialProject) *domain.FiringCurveRevision {

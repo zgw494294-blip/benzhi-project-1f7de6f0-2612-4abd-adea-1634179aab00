@@ -80,5 +80,8 @@ func (s *Service) DeriveRevision(projectID, baselineRevisionID string, c DeriveR
 		result = r
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }

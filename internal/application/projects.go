@@ -48,7 +48,10 @@ func (s *Service) CreateProject(c CreateProjectCommand) (*domain.TrialProject, e
 		result = p
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 type RevisionCommand struct {
@@ -101,7 +104,10 @@ func (s *Service) CreateRevision(projectID string, c RevisionCommand) (*domain.F
 		result = r
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 type EditRevisionCommand struct {
@@ -150,7 +156,10 @@ func (s *Service) EditRevision(projectID, revisionID string, c EditRevisionComma
 		result = r
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 type FreezeCommand struct {
@@ -208,7 +217,10 @@ func (s *Service) FreezeRevision(projectID, revisionID string, c FreezeCommand) 
 		result = r
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 func (s *Service) ValidateCurve(projectID string, segments []domain.CurveSegment) ([]domain.CheckResult, error) {

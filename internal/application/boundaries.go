@@ -54,5 +54,8 @@ func (s *Service) ReviseBoundaries(projectID string, c ReviseBoundariesCommand) 
 		result = p
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }

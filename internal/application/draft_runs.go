@@ -79,7 +79,10 @@ func (s *Service) StartTrialRun(projectID string, c StartTrialRunCommand) (*doma
 		result = run
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 func equalStrings(left, right []string) bool {
@@ -167,7 +170,10 @@ func (s *Service) SaveTrialEvidence(projectID, runID string, c SaveTrialEvidence
 		result = run
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 type CompleteTrialRunCommand struct {
@@ -240,7 +246,10 @@ func (s *Service) CompleteTrialRun(projectID, runID string, c CompleteTrialRunCo
 		result = run
 		return nil
 	})
-	return result, err
+	if err != nil {
+		return nil, err
+	}
+	return cloneEntity(result), nil
 }
 
 func failedChecks(checks []domain.CheckResult) map[string]domain.CheckResult {
