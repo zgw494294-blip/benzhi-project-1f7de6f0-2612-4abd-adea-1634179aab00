@@ -75,3 +75,30 @@ func (r *FiringCurveRevision) CanonicalSnapshot() ([]byte, error) {
 	}
 	return json.Marshal(snapshot{ProjectID: r.ProjectID, RevisionNo: r.RevisionNo, BasedOn: r.BasedOnRevisionID, Segments: r.Segments})
 }
+
+// VerifyFrozenIntegrity 校验冻结曲线的内容摘要与冻结元数据是否完整且自洽。
+// 冻结修订必须有非空摘要和冻结时间，且按当前分段重算的摘要必须与存储摘要一致；
+// 未冻结修订不得残留冻结摘要或冻结时间。任何不一致都说明快照被篡改或损坏。
+func (r *FiringCurveRevision) VerifyFrozenIntegrity() error {
+	if r.FreezeStatus == CurveFrozen {
+		if r.ContentDigest == "" {
+			return NewError(ErrState, "冻结曲线缺少内容摘要", "contentDigest")
+		}
+		if r.FrozenAt == nil {
+			return NewError(ErrState, "冻结曲线缺少冻结时间", "frozenAt")
+		}
+		b, err := r.CanonicalSnapshot()
+		if err != nil {
+			return err
+		}
+		h := sha256.Sum256(b)
+		if hex.EncodeToString(h[:]) != r.ContentDigest {
+			return NewError(ErrState, "冻结曲线内容摘要与分段内容不匹配", "contentDigest")
+		}
+		return nil
+	}
+	if r.ContentDigest != "" || r.FrozenAt != nil {
+		return NewError(ErrState, "未冻结曲线不应携带冻结摘要或冻结时间", "freezeStatus")
+	}
+	return nil
+}

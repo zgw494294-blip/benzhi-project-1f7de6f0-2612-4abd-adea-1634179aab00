@@ -56,6 +56,9 @@ func ValidateState(s *State) error {
 			if r == nil || r.ProjectID != p.ID {
 				return fmt.Errorf("课题 %s 引用无效曲线 %s", id, rid)
 			}
+			if err := r.VerifyFrozenIntegrity(); err != nil {
+				return fmt.Errorf("曲线 %s 冻结完整性校验失败: %w", rid, err)
+			}
 		}
 		for _, runID := range p.RunIDs {
 			r := s.Runs[runID]
