@@ -1,6 +1,7 @@
 package application
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 
@@ -45,7 +46,13 @@ func (s *Service) GetProject(id string) (*ProjectDetail, error) {
 		}
 		cacheKey := fmt.Sprintf("%s:%d", id, p.Version)
 		if cached, ok := s.cachedProjectDetail(cacheKey); ok {
-			out = cached
+			// 缓存中保存的是只读快照，调用方修改返回结果不能污染后续 application 调用和 HTTP 响应，
+			// 因此始终返回深拷贝副本，避免共享 Project.Title、Timeline、Overview 等可写字段。
+			cloned, err := cloneProjectDetail(cached)
+			if err != nil {
+				return err
+			}
+			out = cloned
 			return nil
 		}
 		d := &ProjectDetail{Project: p}
@@ -78,11 +85,28 @@ func (s *Service) GetProject(id string) (*ProjectDetail, error) {
 			}
 			d.CardIntegrity = &ok
 		}
+		// 缓存只读快照，供同版本后续查询复用；返回给调用方的是深拷贝副本，二者不共享可写指针。
 		s.rememberProjectDetail(cacheKey, d)
-		out = d
+		cloned, err := cloneProjectDetail(d)
+		if err != nil {
+			return err
+		}
+		out = cloned
 		return nil
 	})
 	return out, err
+}
+
+func cloneProjectDetail(detail *ProjectDetail) (*ProjectDetail, error) {
+	b, err := json.Marshal(detail)
+	if err != nil {
+		return nil, err
+	}
+	var out ProjectDetail
+	if err = json.Unmarshal(b, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 func (s *Service) Diagnostics() (store.Statistics, error) {
