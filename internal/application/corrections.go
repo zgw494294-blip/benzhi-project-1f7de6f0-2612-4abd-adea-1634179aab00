@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"kilncurve-release/internal/domain"
 	"kilncurve-release/internal/store"
 )
@@ -15,7 +17,7 @@ type CorrectionCommand struct {
 	RelatedRevisionID string `json:"relatedRevisionId"`
 }
 
-func (s *Service) CorrectDeviation(projectID, deviationID string, c CorrectionCommand) (*domain.Deviation, error) {
+func (s *Service) CorrectDeviation(projectID, deviationID string, c CorrectionCommand, ctxs ...context.Context) (*domain.Deviation, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -25,7 +27,7 @@ func (s *Service) CorrectDeviation(projectID, deviationID string, c CorrectionCo
 	key := idemKey("correct-deviation", c.IdempotencyKey)
 	now := s.now()
 	var result *domain.Deviation
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "DEVIATION_CORRECTED", ProjectID: projectID, EntityID: deviationID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Actor, Action: "DEVIATION_CORRECTED", ProjectID: projectID, EntityID: deviationID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Deviations[prior.EntityID]
 			return nil

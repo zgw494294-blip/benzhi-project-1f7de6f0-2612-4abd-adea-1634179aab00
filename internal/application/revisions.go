@@ -1,11 +1,13 @@
 package application
 
 import (
+	"context"
+
 	"kilncurve-release/internal/domain"
 	"kilncurve-release/internal/store"
 )
 
-func (s *Service) CompareRevisions(projectID, baselineRevisionID, comparisonRevisionID string) (*domain.CurveComparison, error) {
+func (s *Service) CompareRevisions(projectID, baselineRevisionID, comparisonRevisionID string, ctxs ...context.Context) (*domain.CurveComparison, error) {
 	if baselineRevisionID == "" {
 		return nil, domain.NewError(domain.ErrInvalid, "基线修订不能为空", "baselineRevisionId")
 	}
@@ -16,7 +18,7 @@ func (s *Service) CompareRevisions(projectID, baselineRevisionID, comparisonRevi
 		return nil, domain.NewError(domain.ErrInvalid, "不能选择同一修订进行比较", "comparisonRevisionId")
 	}
 	var result *domain.CurveComparison
-	err := s.repo.Read(func(st *store.State) error {
+	err := s.repo.ReadCtx(contextFrom(ctxs), func(st *store.State) error {
 		if st.Projects[projectID] == nil {
 			return domain.NewError(domain.ErrNotFound, "课题不存在", "projectId")
 		}
@@ -42,7 +44,7 @@ type DeriveRevisionCommand struct {
 	Actor           string `json:"actor"`
 }
 
-func (s *Service) DeriveRevision(projectID, baselineRevisionID string, c DeriveRevisionCommand) (*domain.FiringCurveRevision, error) {
+func (s *Service) DeriveRevision(projectID, baselineRevisionID string, c DeriveRevisionCommand, ctxs ...context.Context) (*domain.FiringCurveRevision, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -52,7 +54,7 @@ func (s *Service) DeriveRevision(projectID, baselineRevisionID string, c DeriveR
 	key := idemKey("derive-revision:"+projectID, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_DERIVED", ProjectID: projectID, EntityID: baselineRevisionID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_DERIVED", ProjectID: projectID, EntityID: baselineRevisionID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Revisions[prior.EntityID]
 			return nil

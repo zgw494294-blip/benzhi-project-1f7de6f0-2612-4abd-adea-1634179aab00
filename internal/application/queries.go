@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"sort"
 
 	"kilncurve-release/internal/domain"
@@ -23,9 +24,9 @@ type ProjectDetail struct {
 	RunViews         []RunView                     `json:"runViews"`
 }
 
-func (s *Service) ListProjects() ([]*domain.TrialProject, error) {
+func (s *Service) ListProjects(ctxs ...context.Context) ([]*domain.TrialProject, error) {
 	out := []*domain.TrialProject{}
-	err := s.repo.Read(func(st *store.State) error {
+	err := s.repo.ReadCtx(contextFrom(ctxs), func(st *store.State) error {
 		for _, p := range st.Projects {
 			out = append(out, p)
 		}
@@ -35,9 +36,9 @@ func (s *Service) ListProjects() ([]*domain.TrialProject, error) {
 	return out, err
 }
 
-func (s *Service) GetProject(id string) (*ProjectDetail, error) {
+func (s *Service) GetProject(id string, ctxs ...context.Context) (*ProjectDetail, error) {
 	var out *ProjectDetail
-	err := s.repo.Read(func(st *store.State) error {
+	err := s.repo.ReadCtx(contextFrom(ctxs), func(st *store.State) error {
 		p := st.Projects[id]
 		if p == nil {
 			return domain.NewError(domain.ErrNotFound, "课题不存在", "projectId")
@@ -82,10 +83,10 @@ func (s *Service) Diagnostics() (store.Statistics, error) {
 	return s.repo.Inspect()
 }
 
-func (s *Service) VerifyCard(cardID string) (*domain.ProcessCard, bool, error) {
+func (s *Service) VerifyCard(cardID string, ctxs ...context.Context) (*domain.ProcessCard, bool, error) {
 	var card *domain.ProcessCard
 	valid := false
-	err := s.repo.Read(func(st *store.State) error {
+	err := s.repo.ReadCtx(contextFrom(ctxs), func(st *store.State) error {
 		card = st.Cards[cardID]
 		if card == nil {
 			return domain.NewError(domain.ErrNotFound, "工艺卡不存在", "cardId")

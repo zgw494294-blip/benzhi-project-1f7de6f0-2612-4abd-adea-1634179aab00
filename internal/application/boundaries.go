@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"kilncurve-release/internal/domain"
 	"kilncurve-release/internal/store"
 )
@@ -19,7 +21,7 @@ type ReviseBoundariesCommand struct {
 	QualityLimits   domain.QualityLimits `json:"qualityLimits"`
 }
 
-func (s *Service) ReviseBoundaries(projectID string, c ReviseBoundariesCommand) (*domain.TrialProject, error) {
+func (s *Service) ReviseBoundaries(projectID string, c ReviseBoundariesCommand, ctxs ...context.Context) (*domain.TrialProject, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -29,7 +31,7 @@ func (s *Service) ReviseBoundaries(projectID string, c ReviseBoundariesCommand) 
 	key := idemKey("revise-boundaries:"+projectID, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialProject
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "BOUNDARIES_REVISED", ProjectID: projectID, EntityID: projectID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Actor, Action: "BOUNDARIES_REVISED", ProjectID: projectID, EntityID: projectID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Projects[prior.ProjectID]
 			return nil

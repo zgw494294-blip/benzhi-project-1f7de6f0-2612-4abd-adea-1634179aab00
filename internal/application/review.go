@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"fmt"
 
 	"kilncurve-release/internal/domain"
@@ -17,7 +18,7 @@ type ReviewCommand struct {
 	Comment         string `json:"comment"`
 }
 
-func (s *Service) ReviewProject(projectID string, c ReviewCommand) (*domain.ProcessCard, error) {
+func (s *Service) ReviewProject(projectID string, c ReviewCommand, ctxs ...context.Context) (*domain.ProcessCard, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleQualityReviewer); err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func (s *Service) ReviewProject(projectID string, c ReviewCommand) (*domain.Proc
 	key := idemKey("review-project", c.IdempotencyKey)
 	now := s.now()
 	var result *domain.ProcessCard
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Reviewer, Action: "PROJECT_REVIEWED", ProjectID: projectID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Reviewer, Action: "PROJECT_REVIEWED", ProjectID: projectID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			if prior.EntityID != "" {
 				result = st.Cards[prior.EntityID]

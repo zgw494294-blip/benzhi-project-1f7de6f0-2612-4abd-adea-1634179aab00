@@ -46,7 +46,7 @@ func (h *Handler) HandleReviseBoundaries(w http.ResponseWriter, r *http.Request)
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.ReviseBoundaries(r.PathValue("projectId"), c)
+	v, err := h.service.ReviseBoundaries(r.PathValue("projectId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -76,7 +76,7 @@ func (h *Handler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "time": time.Now().UTC(), "persistence": stats})
 }
 func (h *Handler) HandleListProjects(w http.ResponseWriter, r *http.Request) {
-	v, err := h.service.ListProjects()
+	v, err := h.service.ListProjects(r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -89,7 +89,7 @@ func (h *Handler) HandleCreateProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.CreateProject(c)
+	v, err := h.service.CreateProject(c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -97,7 +97,7 @@ func (h *Handler) HandleCreateProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, v)
 }
 func (h *Handler) HandleGetProject(w http.ResponseWriter, r *http.Request) {
-	v, err := h.service.GetProject(r.PathValue("projectId"))
+	v, err := h.service.GetProject(r.PathValue("projectId"), r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -112,7 +112,7 @@ func (h *Handler) HandleValidateCurve(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.ValidateCurve(r.PathValue("projectId"), body.Segments)
+	v, err := h.service.ValidateCurve(r.PathValue("projectId"), body.Segments, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -120,7 +120,7 @@ func (h *Handler) HandleValidateCurve(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"checks": v})
 }
 func (h *Handler) HandleCompareRevisions(w http.ResponseWriter, r *http.Request) {
-	v, err := h.service.CompareRevisions(r.PathValue("projectId"), r.URL.Query().Get("baselineRevisionId"), r.URL.Query().Get("comparisonRevisionId"))
+	v, err := h.service.CompareRevisions(r.PathValue("projectId"), r.URL.Query().Get("baselineRevisionId"), r.URL.Query().Get("comparisonRevisionId"), r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -133,7 +133,7 @@ func (h *Handler) HandleCreateRevision(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.CreateRevision(r.PathValue("projectId"), c)
+	v, err := h.service.CreateRevision(r.PathValue("projectId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -146,7 +146,7 @@ func (h *Handler) HandleEditRevision(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.EditRevision(r.PathValue("projectId"), r.PathValue("revisionId"), c)
+	v, err := h.service.EditRevision(r.PathValue("projectId"), r.PathValue("revisionId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -159,7 +159,7 @@ func (h *Handler) HandleDeriveRevision(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.DeriveRevision(r.PathValue("projectId"), r.PathValue("revisionId"), c)
+	v, err := h.service.DeriveRevision(r.PathValue("projectId"), r.PathValue("revisionId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -172,7 +172,7 @@ func (h *Handler) HandleFreezeRevision(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.FreezeRevision(r.PathValue("projectId"), r.PathValue("revisionId"), c)
+	v, err := h.service.FreezeRevision(r.PathValue("projectId"), r.PathValue("revisionId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -185,7 +185,7 @@ func (h *Handler) HandleTrialRun(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.RecordAndEvaluateRun(r.PathValue("projectId"), c)
+	v, err := h.service.RecordAndEvaluateRun(r.PathValue("projectId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -198,7 +198,7 @@ func (h *Handler) HandleStartTrialRun(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.StartTrialRun(r.PathValue("projectId"), c)
+	v, err := h.service.StartTrialRun(r.PathValue("projectId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -211,7 +211,7 @@ func (h *Handler) HandleSaveTrialEvidence(w http.ResponseWriter, r *http.Request
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.SaveTrialEvidence(r.PathValue("projectId"), r.PathValue("runId"), c)
+	v, err := h.service.SaveTrialEvidence(r.PathValue("projectId"), r.PathValue("runId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -224,7 +224,7 @@ func (h *Handler) HandleCompleteTrialRun(w http.ResponseWriter, r *http.Request)
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.CompleteTrialRun(r.PathValue("projectId"), r.PathValue("runId"), c)
+	v, err := h.service.CompleteTrialRun(r.PathValue("projectId"), r.PathValue("runId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -237,7 +237,7 @@ func (h *Handler) HandleCorrectDeviation(w http.ResponseWriter, r *http.Request)
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.CorrectDeviation(r.PathValue("projectId"), r.PathValue("deviationId"), c)
+	v, err := h.service.CorrectDeviation(r.PathValue("projectId"), r.PathValue("deviationId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -250,7 +250,7 @@ func (h *Handler) HandleCreateCorrectionBatch(w http.ResponseWriter, r *http.Req
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.CreateCorrectionBatch(r.PathValue("projectId"), c)
+	v, err := h.service.CreateCorrectionBatch(r.PathValue("projectId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -263,7 +263,7 @@ func (h *Handler) HandleReview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err)
 		return
 	}
-	v, err := h.service.ReviewProject(r.PathValue("projectId"), c)
+	v, err := h.service.ReviewProject(r.PathValue("projectId"), c, r.Context())
 	if err != nil {
 		writeError(w, err)
 		return
@@ -271,7 +271,7 @@ func (h *Handler) HandleReview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"processCard": v})
 }
 func (h *Handler) HandleVerifyCard(w http.ResponseWriter, r *http.Request) {
-	card, valid, err := h.service.VerifyCard(r.PathValue("cardId"))
+	card, valid, err := h.service.VerifyCard(r.PathValue("cardId"), r.Context())
 	if err != nil {
 		writeError(w, err)
 		return

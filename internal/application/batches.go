@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -20,7 +21,7 @@ type CorrectionBatchCommand struct {
 	RelatedRevisionID string   `json:"relatedRevisionId"`
 }
 
-func (s *Service) CreateCorrectionBatch(projectID string, c CorrectionBatchCommand) (*domain.DeviationBatch, error) {
+func (s *Service) CreateCorrectionBatch(projectID string, c CorrectionBatchCommand, ctxs ...context.Context) (*domain.DeviationBatch, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -31,7 +32,7 @@ func (s *Service) CreateCorrectionBatch(projectID string, c CorrectionBatchComma
 	now := s.now()
 	batchID := s.id("batch")
 	var result *domain.DeviationBatch
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "DEVIATION_BATCH_CREATED", ProjectID: projectID, EntityID: batchID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Actor, Action: "DEVIATION_BATCH_CREATED", ProjectID: projectID, EntityID: batchID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.DeviationBatches[prior.EntityID]
 			return nil

@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,6 +42,15 @@ func Open(path string) (*Repository, error) {
 }
 
 func (r *Repository) Read(fn func(*State) error) error {
+	return r.ReadCtx(context.Background(), fn)
+}
+
+// ReadCtx 与 Read 相同，但在取得读锁前检查请求上下文：若调用方已取消，
+// 立即返回而不读取状态，避免对已放弃的请求继续执行只读工作。
+func (r *Repository) ReadCtx(ctx context.Context, fn func(*State) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	clone, err := r.state.Clone()
@@ -56,8 +66,22 @@ type CommitMeta struct {
 }
 
 func (r *Repository) Update(meta CommitMeta, fn func(*State) error) error {
+	return r.UpdateCtx(context.Background(), meta, fn)
+}
+
+// UpdateCtx 与 Update 相同，但尊重请求上下文的取消：
+//   - 在等待写锁期间或取得写锁后被取消时，立即停止，不应用任何变更、
+//     不追加审计事件、不写盘、不发布新的内存状态。
+//   - 在持久化前再次检查取消，确保“正式提交前”的取消不会落盘。
+//
+// 这样客户端已放弃的请求不会产生课题、审计记录或快照副作用，同时不影响
+// 未取消请求、正常并发串行化和现有超时机制。
+func (r *Repository) UpdateCtx(ctx context.Context, meta CommitMeta, fn func(*State) error) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	next, err := r.state.Clone()
 	if err != nil {
 		return err
@@ -75,6 +99,9 @@ func (r *Repository) Update(meta CommitMeta, fn func(*State) error) error {
 		}
 	}
 	if err = ValidateState(next); err != nil {
+		return err
+	}
+	if err = ctx.Err(); err != nil {
 		return err
 	}
 	if err = r.persist(next); err != nil {

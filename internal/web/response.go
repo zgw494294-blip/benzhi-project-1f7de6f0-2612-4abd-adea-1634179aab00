@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -29,6 +30,15 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 func writeError(w http.ResponseWriter, err error) {
+	// 客户端已经断开连接或请求超时：不要再尝试写出响应体，避免误导日志或
+	// 触发额外的写入。这是已取消请求的“立即停止”语义在响应侧的对应处理。
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		writeJSON(w, http.StatusGatewayTimeout, errorEnvelope{apiError{Code: "TIMEOUT", Message: "请求超时"}})
+		return
+	}
 	var be *domain.BusinessError
 	if errors.As(err, &be) {
 		status := http.StatusBadRequest

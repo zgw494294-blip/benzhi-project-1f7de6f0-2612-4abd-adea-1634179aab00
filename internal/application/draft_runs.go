@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
@@ -22,7 +23,7 @@ type StartTrialRunCommand struct {
 	Operator         string   `json:"operator"`
 }
 
-func (s *Service) StartTrialRun(projectID string, c StartTrialRunCommand) (*domain.TrialRun, error) {
+func (s *Service) StartTrialRun(projectID string, c StartTrialRunCommand, ctxs ...context.Context) (*domain.TrialRun, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleTrialOperator); err != nil {
 		return nil, err
 	}
@@ -34,7 +35,7 @@ func (s *Service) StartTrialRun(projectID string, c StartTrialRunCommand) (*doma
 	operator := strings.TrimSpace(c.Operator)
 	runID := s.id("run")
 	var result *domain.TrialRun
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_STARTED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_STARTED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Runs[prior.EntityID]
 			return nil
@@ -127,7 +128,7 @@ type SaveTrialEvidenceCommand struct {
 	QualityMeasurements domain.QualityMeasurements `json:"qualityMeasurements"`
 }
 
-func (s *Service) SaveTrialEvidence(projectID, runID string, c SaveTrialEvidenceCommand) (*domain.TrialRun, error) {
+func (s *Service) SaveTrialEvidence(projectID, runID string, c SaveTrialEvidenceCommand, ctxs ...context.Context) (*domain.TrialRun, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleTrialOperator); err != nil {
 		return nil, err
 	}
@@ -137,7 +138,7 @@ func (s *Service) SaveTrialEvidence(projectID, runID string, c SaveTrialEvidence
 	key := idemKey("save-trial-evidence:"+projectID, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialRun
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_EVIDENCE_SAVED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_EVIDENCE_SAVED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Runs[prior.EntityID]
 			return nil
@@ -177,7 +178,7 @@ type CompleteTrialRunCommand struct {
 	Operator        string `json:"operator"`
 }
 
-func (s *Service) CompleteTrialRun(projectID, runID string, c CompleteTrialRunCommand) (*domain.TrialRun, error) {
+func (s *Service) CompleteTrialRun(projectID, runID string, c CompleteTrialRunCommand, ctxs ...context.Context) (*domain.TrialRun, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleTrialOperator); err != nil {
 		return nil, err
 	}
@@ -187,7 +188,7 @@ func (s *Service) CompleteTrialRun(projectID, runID string, c CompleteTrialRunCo
 	key := idemKey("complete-trial-run:"+projectID, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialRun
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_EVALUATED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_EVALUATED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Runs[prior.EntityID]
 			return nil

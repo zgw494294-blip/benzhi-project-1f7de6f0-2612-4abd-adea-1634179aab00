@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"fmt"
 
 	"kilncurve-release/internal/domain"
@@ -19,7 +20,7 @@ type TrialRunCommand struct {
 	Operator            string                     `json:"operator"`
 }
 
-func (s *Service) RecordAndEvaluateRun(projectID string, c TrialRunCommand) (*domain.TrialRun, error) {
+func (s *Service) RecordAndEvaluateRun(projectID string, c TrialRunCommand, ctxs ...context.Context) (*domain.TrialRun, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleTrialOperator); err != nil {
 		return nil, err
 	}
@@ -29,7 +30,7 @@ func (s *Service) RecordAndEvaluateRun(projectID string, c TrialRunCommand) (*do
 	key := idemKey("evaluate-run", c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialRun
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_EVALUATED", ProjectID: projectID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_EVALUATED", ProjectID: projectID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Runs[prior.EntityID]
 			return nil

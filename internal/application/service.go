@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"time"
@@ -55,3 +56,14 @@ func appErrorWithDetails(code, message, field string, status int, details any) e
 }
 
 func idemKey(command, key string) string { return command + ":" + key }
+
+// contextFrom 从可变参数中取出请求上下文。
+// Service 的命令方法以 ctxs ...context.Context 形式接收上下文，
+// 既能兼容现有不带 context 的调用方（测试、内部复用），又能让 HTTP
+// 处理器把请求作用域传入，以便在等待写锁或正式提交前响应取消。
+func contextFrom(ctxs []context.Context) context.Context {
+	if len(ctxs) > 0 && ctxs[0] != nil {
+		return ctxs[0]
+	}
+	return context.Background()
+}

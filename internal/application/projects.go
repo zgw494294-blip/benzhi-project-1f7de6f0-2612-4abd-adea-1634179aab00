@@ -1,6 +1,8 @@
 package application
 
 import (
+	"context"
+
 	"kilncurve-release/internal/domain"
 	"kilncurve-release/internal/store"
 	"kilncurve-release/internal/verification"
@@ -19,7 +21,7 @@ type CreateProjectCommand struct {
 	QualityLimits  domain.QualityLimits `json:"qualityLimits"`
 }
 
-func (s *Service) CreateProject(c CreateProjectCommand) (*domain.TrialProject, error) {
+func (s *Service) CreateProject(c CreateProjectCommand, ctxs ...context.Context) (*domain.TrialProject, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -29,7 +31,7 @@ func (s *Service) CreateProject(c CreateProjectCommand) (*domain.TrialProject, e
 	key := idemKey("create-project", c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialProject
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Owner, Action: "PROJECT_CREATED"}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Owner, Action: "PROJECT_CREATED"}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Projects[prior.ProjectID]
 			return nil
@@ -60,7 +62,7 @@ type RevisionCommand struct {
 	Segments          []domain.CurveSegment `json:"segments"`
 }
 
-func (s *Service) CreateRevision(projectID string, c RevisionCommand) (*domain.FiringCurveRevision, error) {
+func (s *Service) CreateRevision(projectID string, c RevisionCommand, ctxs ...context.Context) (*domain.FiringCurveRevision, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -70,7 +72,7 @@ func (s *Service) CreateRevision(projectID string, c RevisionCommand) (*domain.F
 	key := idemKey("create-revision", c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_CREATED", ProjectID: projectID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_CREATED", ProjectID: projectID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Revisions[prior.EntityID]
 			return nil
@@ -112,7 +114,7 @@ type EditRevisionCommand struct {
 	Segments        []domain.CurveSegment `json:"segments"`
 }
 
-func (s *Service) EditRevision(projectID, revisionID string, c EditRevisionCommand) (*domain.FiringCurveRevision, error) {
+func (s *Service) EditRevision(projectID, revisionID string, c EditRevisionCommand, ctxs ...context.Context) (*domain.FiringCurveRevision, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -122,7 +124,7 @@ func (s *Service) EditRevision(projectID, revisionID string, c EditRevisionComma
 	key := idemKey("edit-revision", c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_EDITED", ProjectID: projectID, EntityID: revisionID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_EDITED", ProjectID: projectID, EntityID: revisionID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Revisions[prior.EntityID]
 			return nil
@@ -160,7 +162,7 @@ type FreezeCommand struct {
 	Actor           string `json:"actor"`
 }
 
-func (s *Service) FreezeRevision(projectID, revisionID string, c FreezeCommand) (*domain.FiringCurveRevision, error) {
+func (s *Service) FreezeRevision(projectID, revisionID string, c FreezeCommand, ctxs ...context.Context) (*domain.FiringCurveRevision, error) {
 	if err := domain.RequireRole(c.Role, domain.RoleProcessEngineer); err != nil {
 		return nil, err
 	}
@@ -170,7 +172,7 @@ func (s *Service) FreezeRevision(projectID, revisionID string, c FreezeCommand) 
 	key := idemKey("freeze-revision", c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
-	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_FROZEN", ProjectID: projectID, EntityID: revisionID}, func(st *store.State) error {
+	err := s.repo.UpdateCtx(contextFrom(ctxs), store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_FROZEN", ProjectID: projectID, EntityID: revisionID}, func(st *store.State) error {
 		if prior, ok := st.Idempotency[key]; ok {
 			result = st.Revisions[prior.EntityID]
 			return nil
@@ -211,9 +213,9 @@ func (s *Service) FreezeRevision(projectID, revisionID string, c FreezeCommand) 
 	return result, err
 }
 
-func (s *Service) ValidateCurve(projectID string, segments []domain.CurveSegment) ([]domain.CheckResult, error) {
+func (s *Service) ValidateCurve(projectID string, segments []domain.CurveSegment, ctxs ...context.Context) ([]domain.CheckResult, error) {
 	var out []domain.CheckResult
-	err := s.repo.Read(func(st *store.State) error {
+	err := s.repo.ReadCtx(contextFrom(ctxs), func(st *store.State) error {
 		p := st.Projects[projectID]
 		if p == nil {
 			return domain.NewError(domain.ErrNotFound, "课题不存在", "projectId")
