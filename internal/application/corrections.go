@@ -22,7 +22,7 @@ func (s *Service) CorrectDeviation(projectID, deviationID string, c CorrectionCo
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("correct-deviation", c.IdempotencyKey)
+	key := idemKey("correct-deviation", []string{projectID, deviationID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.Deviation
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "DEVIATION_CORRECTED", ProjectID: projectID, EntityID: deviationID}, func(st *store.State) error {

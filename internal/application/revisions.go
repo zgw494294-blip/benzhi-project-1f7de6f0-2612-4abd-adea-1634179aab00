@@ -49,7 +49,7 @@ func (s *Service) DeriveRevision(projectID, baselineRevisionID string, c DeriveR
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("derive-revision:"+projectID, c.IdempotencyKey)
+	key := idemKey("derive-revision", []string{projectID, baselineRevisionID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_DERIVED", ProjectID: projectID, EntityID: baselineRevisionID}, func(st *store.State) error {

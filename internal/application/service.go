@@ -3,6 +3,7 @@ package application
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 	"time"
 
 	"kilncurve-release/internal/store"
@@ -54,4 +55,6 @@ func appErrorWithDetails(code, message, field string, status int, details any) e
 	return &AppError{Code: code, Message: message, Field: field, Status: status, Details: details}
 }
 
-func idemKey(command, key string) string { return command + ":" + key }
+func idemKey(command string, scope []string, key string) string {
+	return command + ":" + strings.Join(scope, ":") + ":" + key
+}

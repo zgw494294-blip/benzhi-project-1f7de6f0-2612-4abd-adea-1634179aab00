@@ -29,7 +29,7 @@ func (s *Service) StartTrialRun(projectID string, c StartTrialRunCommand) (*doma
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("start-trial-run:"+projectID, c.IdempotencyKey)
+	key := idemKey("start-trial-run", []string{projectID}, c.IdempotencyKey)
 	now := s.now()
 	operator := strings.TrimSpace(c.Operator)
 	runID := s.id("run")
@@ -134,7 +134,7 @@ func (s *Service) SaveTrialEvidence(projectID, runID string, c SaveTrialEvidence
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("save-trial-evidence:"+projectID, c.IdempotencyKey)
+	key := idemKey("save-trial-evidence", []string{projectID, runID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialRun
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_EVIDENCE_SAVED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {
@@ -184,7 +184,7 @@ func (s *Service) CompleteTrialRun(projectID, runID string, c CompleteTrialRunCo
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("complete-trial-run:"+projectID, c.IdempotencyKey)
+	key := idemKey("complete-trial-run", []string{projectID, runID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialRun
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_EVALUATED", ProjectID: projectID, EntityID: runID}, func(st *store.State) error {

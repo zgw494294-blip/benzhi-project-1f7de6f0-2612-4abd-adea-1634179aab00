@@ -26,7 +26,7 @@ func (s *Service) ReviseBoundaries(projectID string, c ReviseBoundariesCommand) 
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("revise-boundaries:"+projectID, c.IdempotencyKey)
+	key := idemKey("revise-boundaries", []string{projectID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialProject
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "BOUNDARIES_REVISED", ProjectID: projectID, EntityID: projectID}, func(st *store.State) error {

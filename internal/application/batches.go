@@ -27,7 +27,7 @@ func (s *Service) CreateCorrectionBatch(projectID string, c CorrectionBatchComma
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("create-correction-batch:"+projectID, c.IdempotencyKey)
+	key := idemKey("create-correction-batch", []string{projectID}, c.IdempotencyKey)
 	now := s.now()
 	batchID := s.id("batch")
 	var result *domain.DeviationBatch

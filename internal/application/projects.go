@@ -26,7 +26,7 @@ func (s *Service) CreateProject(c CreateProjectCommand) (*domain.TrialProject, e
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("create-project", c.IdempotencyKey)
+	key := idemKey("create-project", nil, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialProject
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Owner, Action: "PROJECT_CREATED"}, func(st *store.State) error {
@@ -67,7 +67,7 @@ func (s *Service) CreateRevision(projectID string, c RevisionCommand) (*domain.F
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("create-revision", c.IdempotencyKey)
+	key := idemKey("create-revision", []string{projectID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_CREATED", ProjectID: projectID}, func(st *store.State) error {
@@ -119,7 +119,7 @@ func (s *Service) EditRevision(projectID, revisionID string, c EditRevisionComma
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("edit-revision", c.IdempotencyKey)
+	key := idemKey("edit-revision", []string{projectID, revisionID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_EDITED", ProjectID: projectID, EntityID: revisionID}, func(st *store.State) error {
@@ -167,7 +167,7 @@ func (s *Service) FreezeRevision(projectID, revisionID string, c FreezeCommand) 
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("freeze-revision", c.IdempotencyKey)
+	key := idemKey("freeze-revision", []string{projectID, revisionID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.FiringCurveRevision
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Actor, Action: "REVISION_FROZEN", ProjectID: projectID, EntityID: revisionID}, func(st *store.State) error {

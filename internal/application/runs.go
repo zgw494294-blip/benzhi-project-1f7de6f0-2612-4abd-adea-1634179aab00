@@ -26,7 +26,7 @@ func (s *Service) RecordAndEvaluateRun(projectID string, c TrialRunCommand) (*do
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("evaluate-run", c.IdempotencyKey)
+	key := idemKey("evaluate-run", []string{projectID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.TrialRun
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Operator, Action: "TRIAL_RUN_EVALUATED", ProjectID: projectID}, func(st *store.State) error {

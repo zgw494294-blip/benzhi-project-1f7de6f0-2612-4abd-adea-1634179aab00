@@ -24,7 +24,7 @@ func (s *Service) ReviewProject(projectID string, c ReviewCommand) (*domain.Proc
 	if err := requireKey(c.IdempotencyKey); err != nil {
 		return nil, err
 	}
-	key := idemKey("review-project", c.IdempotencyKey)
+	key := idemKey("review-project", []string{projectID}, c.IdempotencyKey)
 	now := s.now()
 	var result *domain.ProcessCard
 	err := s.repo.Update(store.CommitMeta{At: now, Actor: c.Reviewer, Action: "PROJECT_REVIEWED", ProjectID: projectID}, func(st *store.State) error {
