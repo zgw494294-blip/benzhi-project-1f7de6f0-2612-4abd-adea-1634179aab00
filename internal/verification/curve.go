@@ -21,7 +21,7 @@ type CurveValidator struct {
 func NewCurveValidator() *CurveValidator { return &CurveValidator{} }
 
 func (v *CurveValidator) Validate(segments []domain.CurveSegment, limits domain.KilnLimits) []domain.CheckResult {
-	key, cacheable := curveCacheKey(segments)
+	key, cacheable := curveCacheKey(segments, limits)
 	if cacheable {
 		v.mu.RLock()
 		if v.hasCached && v.cachedKey == key {
@@ -43,8 +43,11 @@ func (v *CurveValidator) Validate(segments []domain.CurveSegment, limits domain.
 	return results
 }
 
-func curveCacheKey(segments []domain.CurveSegment) ([sha256.Size]byte, bool) {
-	payload, err := json.Marshal(segments)
+func curveCacheKey(segments []domain.CurveSegment, limits domain.KilnLimits) ([sha256.Size]byte, bool) {
+	payload, err := json.Marshal(struct {
+		Segments []domain.CurveSegment `json:"segments"`
+		Limits   domain.KilnLimits    `json:"limits"`
+	}{Segments: segments, Limits: limits})
 	if err != nil {
 		return [sha256.Size]byte{}, false
 	}
