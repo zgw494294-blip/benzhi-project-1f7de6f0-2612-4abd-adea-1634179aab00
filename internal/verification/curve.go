@@ -1,21 +1,39 @@
 package verification
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 
 	"kilncurve-release/internal/domain"
 )
 
-type CurveValidator struct{}
+type CurveValidator struct {
+	mu    sync.RWMutex
+	cache map[string][]domain.CheckResult
+}
 
-func NewCurveValidator() *CurveValidator { return &CurveValidator{} }
+func NewCurveValidator() *CurveValidator {
+	return &CurveValidator{cache: map[string][]domain.CheckResult{}}
+}
 
 func (v *CurveValidator) Validate(segments []domain.CurveSegment, limits domain.KilnLimits) []domain.CheckResult {
+	cacheKey, cacheable := curveCacheKey(segments, limits)
+	if cacheable {
+		v.mu.RLock()
+		cached, ok := v.cache[cacheKey]
+		v.mu.RUnlock()
+		if ok {
+			return cached
+		}
+	}
 	results := make([]domain.CheckResult, 0)
 	if len(segments) == 0 {
-		return []domain.CheckResult{fail("CURVE_EMPTY", "曲线分段", "0", ">=1", "segments", "曲线至少需要一个分段")}
+		return v.remember(cacheKey, cacheable, []domain.CheckResult{fail("CURVE_EMPTY", "曲线分段", "0", ">=1", "segments", "曲线至少需要一个分段")})
 	}
 	ordered := append([]domain.CurveSegment(nil), segments...)
 	sort.SliceStable(ordered, func(i, j int) bool { return ordered[i].Order < ordered[j].Order })
@@ -78,6 +96,31 @@ func (v *CurveValidator) Validate(segments []domain.CurveSegment, limits domain.
 	if len(results) == 0 {
 		results = append(results, pass("CURVE_VALID", "曲线静态校验", "通过", "全部窑炉边界", "曲线合法"))
 	}
+	return v.remember(cacheKey, cacheable, results)
+}
+
+func curveCacheKey(segments []domain.CurveSegment, limits domain.KilnLimits) (string, bool) {
+	b, err := json.Marshal(struct {
+		Segments []domain.CurveSegment `json:"segments"`
+		Limits   domain.KilnLimits     `json:"limits"`
+	}{Segments: segments, Limits: limits})
+	if err != nil {
+		return "", false
+	}
+	digest := sha256.Sum256(b)
+	return hex.EncodeToString(digest[:]), true
+}
+
+func (v *CurveValidator) remember(key string, cacheable bool, results []domain.CheckResult) []domain.CheckResult {
+	if !cacheable {
+		return results
+	}
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	if cached, ok := v.cache[key]; ok {
+		return cached
+	}
+	v.cache[key] = results
 	return results
 }
 
