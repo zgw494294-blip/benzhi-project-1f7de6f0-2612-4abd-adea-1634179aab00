@@ -1,6 +1,8 @@
 package application
 
 import (
+	"strings"
+
 	"kilncurve-release/internal/domain"
 	"kilncurve-release/internal/store"
 )
@@ -14,6 +16,10 @@ func (s *Service) CompareRevisions(projectID, baselineRevisionID, comparisonRevi
 	}
 	if baselineRevisionID == comparisonRevisionID {
 		return nil, domain.NewError(domain.ErrInvalid, "不能选择同一修订进行比较", "comparisonRevisionId")
+	}
+	cacheKey := strings.Join([]string{projectID, baselineRevisionID, comparisonRevisionID}, "\x00")
+	if cached, ok := s.cachedRevisionComparison(cacheKey); ok {
+		return cached, nil
 	}
 	var result *domain.CurveComparison
 	err := s.repo.Read(func(st *store.State) error {
@@ -32,7 +38,50 @@ func (s *Service) CompareRevisions(projectID, baselineRevisionID, comparisonRevi
 		result = &value
 		return nil
 	})
+	if err == nil {
+		s.rememberRevisionComparison(cacheKey, result)
+	}
 	return result, err
+}
+
+func (s *Service) cachedRevisionComparison(key string) (*domain.CurveComparison, bool) {
+	s.comparisonMu.RLock()
+	value, ok := s.comparisonCache[key]
+	s.comparisonMu.RUnlock()
+	if !ok {
+		return nil, false
+	}
+	cloned := cloneRevisionComparison(value)
+	return &cloned, true
+}
+
+func (s *Service) rememberRevisionComparison(key string, value *domain.CurveComparison) {
+	if value == nil {
+		return
+	}
+	s.comparisonMu.Lock()
+	defer s.comparisonMu.Unlock()
+	if len(s.comparisonCache) >= 64 {
+		clear(s.comparisonCache)
+	}
+	s.comparisonCache[key] = cloneRevisionComparison(*value)
+}
+
+func cloneRevisionComparison(value domain.CurveComparison) domain.CurveComparison {
+	cloned := value
+	cloned.SegmentDifferences = make([]domain.SegmentDifference, len(value.SegmentDifferences))
+	copy(cloned.SegmentDifferences, value.SegmentDifferences)
+	for i := range cloned.SegmentDifferences {
+		if value.SegmentDifferences[i].Baseline != nil {
+			segment := *value.SegmentDifferences[i].Baseline
+			cloned.SegmentDifferences[i].Baseline = &segment
+		}
+		if value.SegmentDifferences[i].Comparison != nil {
+			segment := *value.SegmentDifferences[i].Comparison
+			cloned.SegmentDifferences[i].Comparison = &segment
+		}
+	}
+	return cloned
 }
 
 type DeriveRevisionCommand struct {
