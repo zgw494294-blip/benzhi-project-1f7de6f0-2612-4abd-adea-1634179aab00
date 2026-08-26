@@ -60,13 +60,13 @@ func (s *Service) ReviewProject(projectID string, c ReviewCommand) (*domain.Proc
 		if c.Decision != "APPROVE" {
 			return domain.NewError(domain.ErrInvalid, "复核决定必须为 APPROVE 或 RETURN", "decision")
 		}
+		curve := s.reviewCandidate(st, p)
 		if err := p.RequireStatus(domain.ProjectReview); err != nil {
 			return err
 		}
 		if err := verification.ReviewReady(p, st.Runs, st.Deviations); err != nil {
 			return err
 		}
-		curve := latestFrozen(st, p)
 		if curve == nil {
 			return domain.NewError(domain.ErrState, "没有可签发的冻结曲线", "revisions")
 		}
@@ -88,6 +88,19 @@ func (s *Service) ReviewProject(projectID string, c ReviewCommand) (*domain.Proc
 		return nil
 	})
 	return result, err
+}
+
+func (s *Service) reviewCandidate(st *store.State, p *domain.TrialProject) *domain.FiringCurveRevision {
+	s.reviewMu.Lock()
+	defer s.reviewMu.Unlock()
+	if revisionID := s.reviewCandidates[p.ID]; revisionID != "" {
+		return st.Revisions[revisionID]
+	}
+	curve := latestFrozen(st, p)
+	if curve != nil {
+		s.reviewCandidates[p.ID] = curve.ID
+	}
+	return curve
 }
 
 func latestFrozen(st *store.State, p *domain.TrialProject) *domain.FiringCurveRevision {

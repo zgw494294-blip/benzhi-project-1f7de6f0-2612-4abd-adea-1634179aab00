@@ -3,6 +3,7 @@ package application
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"sync"
 	"time"
 
 	"kilncurve-release/internal/store"
@@ -10,15 +11,24 @@ import (
 )
 
 type Service struct {
-	repo     *store.Repository
-	curves   *verification.CurveValidator
-	evidence *verification.EvidenceEvaluator
-	now      func() time.Time
-	id       func(string) string
+	repo             *store.Repository
+	curves           *verification.CurveValidator
+	evidence         *verification.EvidenceEvaluator
+	now              func() time.Time
+	id               func(string) string
+	reviewMu         sync.Mutex
+	reviewCandidates map[string]string
 }
 
 func NewService(repo *store.Repository) *Service {
-	return &Service{repo: repo, curves: verification.NewCurveValidator(), evidence: verification.NewEvidenceEvaluator(), now: func() time.Time { return time.Now().UTC() }, id: newID}
+	return &Service{
+		repo:             repo,
+		curves:           verification.NewCurveValidator(),
+		evidence:         verification.NewEvidenceEvaluator(),
+		now:              func() time.Time { return time.Now().UTC() },
+		id:               newID,
+		reviewCandidates: map[string]string{},
+	}
 }
 
 func newID(prefix string) string {
