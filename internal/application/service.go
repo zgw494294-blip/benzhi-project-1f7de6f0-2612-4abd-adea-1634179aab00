@@ -3,6 +3,7 @@ package application
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"sync"
 	"time"
 
 	"kilncurve-release/internal/store"
@@ -15,10 +16,25 @@ type Service struct {
 	evidence *verification.EvidenceEvaluator
 	now      func() time.Time
 	id       func(string) string
+	detailMu sync.RWMutex
+	details  map[string]*ProjectDetail
 }
 
 func NewService(repo *store.Repository) *Service {
-	return &Service{repo: repo, curves: verification.NewCurveValidator(), evidence: verification.NewEvidenceEvaluator(), now: func() time.Time { return time.Now().UTC() }, id: newID}
+	return &Service{repo: repo, curves: verification.NewCurveValidator(), evidence: verification.NewEvidenceEvaluator(), now: func() time.Time { return time.Now().UTC() }, id: newID, details: map[string]*ProjectDetail{}}
+}
+
+func (s *Service) cachedProjectDetail(key string) (*ProjectDetail, bool) {
+	s.detailMu.RLock()
+	defer s.detailMu.RUnlock()
+	detail, ok := s.details[key]
+	return detail, ok
+}
+
+func (s *Service) rememberProjectDetail(key string, detail *ProjectDetail) {
+	s.detailMu.Lock()
+	defer s.detailMu.Unlock()
+	s.details[key] = detail
 }
 
 func newID(prefix string) string {

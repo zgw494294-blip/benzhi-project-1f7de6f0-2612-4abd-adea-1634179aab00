@@ -1,6 +1,7 @@
 package application
 
 import (
+	"fmt"
 	"sort"
 
 	"kilncurve-release/internal/domain"
@@ -42,6 +43,11 @@ func (s *Service) GetProject(id string) (*ProjectDetail, error) {
 		if p == nil {
 			return domain.NewError(domain.ErrNotFound, "课题不存在", "projectId")
 		}
+		cacheKey := fmt.Sprintf("%s:%d", id, p.Version)
+		if cached, ok := s.cachedProjectDetail(cacheKey); ok {
+			out = cached
+			return nil
+		}
 		d := &ProjectDetail{Project: p}
 		for _, rid := range p.RevisionIDs {
 			d.Revisions = append(d.Revisions, st.Revisions[rid])
@@ -72,6 +78,7 @@ func (s *Service) GetProject(id string) (*ProjectDetail, error) {
 			}
 			d.CardIntegrity = &ok
 		}
+		s.rememberProjectDetail(cacheKey, d)
 		out = d
 		return nil
 	})
