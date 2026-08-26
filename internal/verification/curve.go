@@ -1,18 +1,57 @@
 package verification
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
+	"sync"
 
 	"kilncurve-release/internal/domain"
 )
 
-type CurveValidator struct{}
+type CurveValidator struct {
+	mu            sync.RWMutex
+	hasCached     bool
+	cachedKey     [sha256.Size]byte
+	cachedResults []domain.CheckResult
+}
 
 func NewCurveValidator() *CurveValidator { return &CurveValidator{} }
 
 func (v *CurveValidator) Validate(segments []domain.CurveSegment, limits domain.KilnLimits) []domain.CheckResult {
+	key, cacheable := curveCacheKey(segments)
+	if cacheable {
+		v.mu.RLock()
+		if v.hasCached && v.cachedKey == key {
+			results := append([]domain.CheckResult(nil), v.cachedResults...)
+			v.mu.RUnlock()
+			return results
+		}
+		v.mu.RUnlock()
+	}
+
+	results := validateCurve(segments, limits)
+	if cacheable {
+		v.mu.Lock()
+		v.cachedKey = key
+		v.cachedResults = append(v.cachedResults[:0], results...)
+		v.hasCached = true
+		v.mu.Unlock()
+	}
+	return results
+}
+
+func curveCacheKey(segments []domain.CurveSegment) ([sha256.Size]byte, bool) {
+	payload, err := json.Marshal(segments)
+	if err != nil {
+		return [sha256.Size]byte{}, false
+	}
+	return sha256.Sum256(payload), true
+}
+
+func validateCurve(segments []domain.CurveSegment, limits domain.KilnLimits) []domain.CheckResult {
 	results := make([]domain.CheckResult, 0)
 	if len(segments) == 0 {
 		return []domain.CheckResult{fail("CURVE_EMPTY", "曲线分段", "0", ">=1", "segments", "曲线至少需要一个分段")}
