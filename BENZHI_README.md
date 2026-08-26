@@ -1,6 +1,6 @@
 # BENZHI_README
 
-基于 Go 实现的kilncurve-release Web 项目，一款后端服务，用于支持kilncurve-release的核心业务流程。
+基于 Go 实现的窑炉烧成曲线试烧定版 Web 项目，一款后端服务，用于管理烧成曲线试烧、质量判定、偏差复试和工艺卡定版。
 
 ## 项目说明
 - 项目：benzhi-project-1f7de6f0-2612-4abd-adea-1634179aab00
