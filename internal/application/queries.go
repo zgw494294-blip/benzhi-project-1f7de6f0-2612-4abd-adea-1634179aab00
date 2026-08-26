@@ -23,6 +23,11 @@ type ProjectDetail struct {
 	RunViews         []RunView                     `json:"runViews"`
 }
 
+type cardVerification struct {
+	digest string
+	valid  bool
+}
+
 func (s *Service) ListProjects() ([]*domain.TrialProject, error) {
 	out := []*domain.TrialProject{}
 	err := s.repo.Read(func(st *store.State) error {
@@ -90,8 +95,15 @@ func (s *Service) VerifyCard(cardID string) (*domain.ProcessCard, bool, error) {
 		if card == nil {
 			return domain.NewError(domain.ErrNotFound, "工艺卡不存在", "cardId")
 		}
+		if cached, ok := s.cardVerifications[cardID]; ok && cached.digest == card.Digest {
+			valid = cached.valid
+			return nil
+		}
 		var err error
 		valid, err = card.Verify()
+		if err == nil {
+			s.cardVerifications[cardID] = cardVerification{digest: card.Digest, valid: valid}
+		}
 		return err
 	})
 	return card, valid, err

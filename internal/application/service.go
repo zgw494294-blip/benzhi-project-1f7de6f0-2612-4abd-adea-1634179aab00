@@ -10,15 +10,16 @@ import (
 )
 
 type Service struct {
-	repo     *store.Repository
-	curves   *verification.CurveValidator
-	evidence *verification.EvidenceEvaluator
-	now      func() time.Time
-	id       func(string) string
+	repo              *store.Repository
+	curves            *verification.CurveValidator
+	evidence          *verification.EvidenceEvaluator
+	cardVerifications map[string]cardVerification
+	now               func() time.Time
+	id                func(string) string
 }
 
 func NewService(repo *store.Repository) *Service {
-	return &Service{repo: repo, curves: verification.NewCurveValidator(), evidence: verification.NewEvidenceEvaluator(), now: func() time.Time { return time.Now().UTC() }, id: newID}
+	return &Service{repo: repo, curves: verification.NewCurveValidator(), evidence: verification.NewEvidenceEvaluator(), cardVerifications: map[string]cardVerification{}, now: func() time.Time { return time.Now().UTC() }, id: newID}
 }
 
 func newID(prefix string) string {
