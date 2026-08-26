@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>窑炉烧成曲线试烧定版工作台</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><span class="mark">窑</span><div><h1>烧成曲线定版工作台</h1><p>受控试烧 · 偏差闭环 · 工艺签发</p></div></div>
+    <button id="refresh" class="ghost">刷新当前课题</button>
+  </header>
+  <main>
+    <aside>
+      <button id="new-project" class="primary full">＋ 新建试烧课题</button>
+      <h2>课题清单</h2><div id="project-list" class="project-list"></div>
+    </aside>
+    <section class="workspace">
+      <div id="notice" role="status"></div>
+      <section id="welcome" class="hero"><p class="eyebrow">KILN CURVE RELEASE</p><h2>让每条量产曲线都有完整证据</h2><p>从原料与设备边界登记开始，经曲线冻结、试烧采样、自动判偏和质量复核，签发可独立核验的不可变工艺卡。</p></section>
+      <section id="create-panel" class="panel hidden">
+        <h2>建立试烧课题</h2>
+        <form id="project-form" class="form-grid">
+          <label>课题编号<input name="code" required placeholder="KC-2026-001"></label><label>课题名称<input name="title" required></label><label>负责人<input name="owner" required></label>
+          <label>坯体材料<input name="bodyMaterial" required></label><label>釉料<input name="glazeMaterial" required></label><label>装窑方式<input name="loadingMethod" required></label>
+          <fieldset><legend>窑炉能力</legend><label>最低温度 ℃<input type="number" name="minTemperature" value="20" step="0.1"></label><label>最高温度 ℃<input type="number" name="maxTemperature" value="1300" step="0.1"></label><label>最大升温斜率 ℃/min<input type="number" name="maxHeatingRate" value="10" step="0.1"></label><label>最大降温斜率 ℃/min<input type="number" name="maxCoolingRate" value="8" step="0.1"></label><label>最长保温 min<input type="number" name="maxHoldMinutes" value="180"></label><label>最长周期 min<input type="number" name="maxCycleMinutes" value="1440"></label><label>测温容差 ℃<input type="number" name="temperatureTolerance" value="15" step="0.1"></label></fieldset>
+          <fieldset><legend>质量边界</legend><label>吸水率最小 %<input type="number" name="waterMin" value="0" step="0.01"></label><label>吸水率最大 %<input type="number" name="waterMax" value="0.5" step="0.01"></label><label>收缩率最小 %<input type="number" name="shrinkMin" value="10" step="0.01"></label><label>收缩率最大 %<input type="number" name="shrinkMax" value="15" step="0.01"></label><label>最大色差 ΔE<input type="number" name="maxColorDifference" value="1.5" step="0.01"></label><label>最大变形 mm<input type="number" name="maxDeformation" value="1" step="0.01"></label><label class="checkbox"><input type="checkbox" name="allowSurfaceDefects">允许表面缺陷</label></fieldset>
+          <div class="actions"><button class="primary">创建课题</button></div>
+        </form>
+      </section>
+      <section id="detail" class="hidden">
+        <div class="project-head panel"><div><p id="project-code" class="eyebrow"></p><h2 id="project-title"></h2><p id="project-meta"></p></div><span id="project-status" class="status"></span></div>
+        <nav class="steps"><button data-tab="boundary">1 边界</button><button data-tab="curve">2 曲线</button><button data-tab="run">3 试烧</button><button data-tab="deviation">4 偏差</button><button data-tab="review">5 复核与工艺卡</button></nav>
+        <section id="tab-boundary" class="panel tab"></section>
+        <section id="tab-curve" class="panel tab hidden"><div class="section-head"><div><h3>分段曲线</h3><p>按工艺顺序设置升温、保温与降温段。</p></div><button id="add-segment" class="ghost">＋ 添加分段</button></div><div id="segments"></div><div id="curve-checks"></div><div class="actions"><button id="validate-curve" class="ghost">校验曲线</button><button id="save-revision" class="primary">保存新修订</button><button id="freeze-revision" class="danger">冻结当前修订</button></div><div id="revision-list"></div><h4>修订差异审阅</h4><div class="form-grid"><label>基线修订<select id="compare-baseline"></select></label><label>对比修订<select id="compare-target"></select></label><div class="actions"><button id="compare-revisions" class="ghost">比较差异</button><button id="derive-revision" class="primary">从基线派生</button></div></div><div id="comparison-view"></div></section>
+        <section id="tab-run" class="panel tab hidden">
+          <h3>试烧证据草稿</h3><p>先开始轮次，再分批保存证据；完整后只执行一次正式评估。</p>
+          <form id="run-form" class="form-grid">
+            <label>冻结曲线<select name="curveRevisionId"></select></label><label>操作员<input name="operator" required></label><label>整改批次（首轮留空）<select name="deviationBatchId"><option value="">全项首轮</option></select></label>
+            <label class="wide">测温点<textarea name="samples" rows="7" placeholder="0,20&#10;120,1200&#10;150,1200&#10;300,20"></textarea></label><label>吸水率 %<input type="number" step="0.001" name="water"></label><label>收缩率 %<input type="number" step="0.001" name="shrinkage"></label><label>色差 ΔE<input type="number" step="0.001" name="color"></label><label>变形 mm<input type="number" step="0.001" name="deformation"></label><label>表面缺陷<select name="defects"><option value="">尚未录入</option><option value="false">无</option><option value="true">有</option></select></label>
+            <div class="actions"><button type="button" id="start-run" class="ghost">开始轮次</button><button type="button" id="save-evidence" class="primary">保存草稿</button><button type="button" id="complete-run" class="danger">确认完整并评估</button></div>
+          </form><div id="run-list"></div>
+        </section>
+        <section id="tab-deviation" class="panel tab hidden"><h3>偏差批量整改</h3><form id="batch-form" class="form-grid"><label class="wide">共同原因<input name="cause" required></label><label class="wide">共同纠正动作<input name="action" required></label><label>冻结派生修订<select name="revisionId"></select></label><div class="actions"><button class="primary">批量登记并生成复试清单</button></div></form><div id="batch-list"></div><div id="deviation-list"></div></section>
+        <section id="tab-review" class="panel tab hidden"><h3>质量复核与工艺卡</h3><form id="review-form" class="form-grid"><label>质量复核员<input name="reviewer" required></label><label>决定<select name="decision"><option value="APPROVE">批准签发</option><option value="RETURN">退回整改</option></select></label><label class="wide">复核意见<input name="comment"></label><div class="actions"><button class="primary">提交复核</button></div></form><div id="card-view"></div><h4>业务时间线</h4><div id="timeline"></div></section>
+      </section>
+    </section>
+  </main>
+  <template id="segment-template"><div class="segment-row"><b class="segment-order"></b><select class="kind"><option value="HEAT">升温</option><option value="HOLD">保温</option><option value="COOL">降温</option></select><label>起温 ℃<input type="number" class="start" step="0.1"></label><label>终温 ℃<input type="number" class="end" step="0.1"></label><label>时长 min<input type="number" class="duration"></label><button class="remove ghost" type="button">删除</button></div></template>
+  <script src="/app.js" defer></script>
+</body>
+</html>
